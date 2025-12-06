@@ -4,10 +4,13 @@ from fastapi import FastAPI, status, HTTPException, UploadFile
 
 from pathlib import Path
 
+import shutil
+
+
 app = FastAPI()
 
-uploads_dir = Path("./uploads")
-uploads_dir.mkdir(exist_ok=True)
+UPLOADS_DIR = Path("./uploads")
+UPLOADS_DIR.mkdir(exist_ok=True)
 
 ALLOWED_MIME_TYPES = ["application/pdf"]
 
@@ -30,7 +33,7 @@ async def upload_evidence(client_id: str, file: UploadFile):
 
     # Creates a directory for a specific client_id inside 'uploads'.
     try:
-        client_upload_dir = uploads_dir / client_id
+        client_upload_dir = UPLOADS_DIR / client_id
 
         # create directory including parent directory if not exists
         client_upload_dir.mkdir(parents=True, exist_ok=True)
@@ -69,3 +72,39 @@ async def upload_evidence(client_id: str, file: UploadFile):
 @app.post("/getAnswer")
 def get_answer():
     return {"message": "Get answer for user's question here"}
+
+
+@app.delete("/cleanup_client/{client_id}")
+def reset_data(client_id: str):
+
+    target_path = UPLOADS_DIR / client_id
+
+    if not target_path.exists():
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No data found for {client_id} client",
+        )
+
+    try:
+        if target_path.is_file():
+
+            target_path.unlink(missing_ok=True)
+
+        elif target_path.is_dir():
+
+            shutil.rmtree(target_path)
+
+        return {"message": f"Data successfully deleted for the client {client_id}"}
+
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Permission Denied .Server cannot delete this file.",
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting file: {str(e)}",
+        )

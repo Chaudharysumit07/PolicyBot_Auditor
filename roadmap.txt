@@ -1,4 +1,4 @@
-1. i have to create apis:
+1. I have to create apis:
     - api to upload multiple files 
         -- file should be "pdf/docx/text" type
         -- process the document and create vector database

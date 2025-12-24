@@ -1,0 +1,5 @@
+activate env : .\app_env\Scripts\activate
+
+start the server : fastapi dev main.py
+
+start ollama application for llm processing

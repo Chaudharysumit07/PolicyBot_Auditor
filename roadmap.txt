@@ -14,5 +14,7 @@ Task 1: How to accept unique client id as query parameter and create a folder
 Task 2: Upload files using api and saving it to upload folder
         -- Done
 Task 3: Create API to delete client data 
+        -- Done
 Task 4: process the document and create vector database
+        -- draw flow of action (NEXT)
 Task 5: create api for accepting questing as input and  query llm and generate response

@@ -1,6 +1,5 @@
 
-temp/
-app_env/
+backend_env/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

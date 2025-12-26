@@ -13,23 +13,25 @@ from fastapi import (
 from pathlib import Path
 
 import shutil
-from temp import rag_pipeline, schemas, utils
+from misc import rag_pipeline, schemas, utils
 
 from typing import List, Dict, Any
 
 from fastapi.middleware.cors import CORSMiddleware
 
+import asyncio
+
 app = FastAPI(title="PolicyBot Auditor API")
 
 
 # CORS (Allowing frontend access)
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8501"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 UPLOADS_DIR = Path("./uploads")
@@ -51,6 +53,8 @@ manager = utils.ConnectionManager()
 
 async def process_and_store_evidences(client_id: str, file_paths: List[Path]):
 
+    await  asyncio.sleep(2)
+
     db_path = ""
 
     try:
@@ -71,6 +75,7 @@ async def process_and_store_evidences(client_id: str, file_paths: List[Path]):
         await manager.send_status_update(
             client_id, "ready", "System is ready. You can now ask questions."
         )
+        print(f"System is ready. You can now ask questions.")
 
     except Exception as e:
         print(f"Error processing for {client_id}:{str(e)}")

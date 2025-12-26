@@ -21,3 +21,11 @@ Task 5: create api for accepting questing as input and  query llm and generate r
         -- Done
 
 Task 6: Call the reset data when connection terminates or every 30 mins from backend
+
+Task 7: Containerize the application
+
+Task 8: Add Oauth2.0
+
+Final Task 9: Add ISO Controls to give answers based on ISO controls 
+
+Final Task 10: Check Accuracy of responses

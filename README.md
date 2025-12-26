@@ -1,14 +1,16 @@
 # 🛡️ PolicyBot Auditor
 
 **Automated GRC & Cybersecurity Policy Auditing using Retrieval-Augmented Generation (RAG).**
+![default view](./screenshots/SS2.PNG)
 
 PolicyBot Auditor is a GenAI-powered tool designed to streamline the auditing process for cybersecurity and compliance frameworks (ISO 27001, SOC2, HIPAA). It allows auditors to upload raw policy documents (PDF, DOCX) and ask assessment questions. The system retrieves exact evidence from the documents and uses an LLM to generate reasoned compliance answers.
-
+![QnA image](./screenshots/SS1.PNG)
 **🚀 Key Features**
 
 * **📄 Multi-Document RAG**: Upload multiple policy documents (PDFs, Text, etc.) simultaneously to build a comprehensive knowledge base.
 
 -- **⚡ Real-Time Progress Tracking**: Uses WebSockets to provide live feedback on parsing, chunking, and embedding processes to the frontend.
+![Document processing steps](./screenshots/SS3.PNG)
 
 * **🔍 Evidence-Based Auditing: Every answer includes:**
 

@@ -101,6 +101,7 @@ for message in st.session_state.messages:
             with st.expander("View Evidence"):
                 st.markdown(f"**Reasoning:** {message['details']['reasoning']}")
                 st.markdown(f"**Evidence:** {message['details']['evidence']}")
+                st.markdown(f"**Sources:** {message['details']['sources']}")
 
 # Chat Input
 if prompt := st.chat_input("Ask a compliance question..."):
@@ -128,10 +129,14 @@ if prompt := st.chat_input("Ask a compliance question..."):
                         "details": {
                             "reasoning": response.get("reasoning", "N/A"),
                             "evidence": response.get("evidence", "N/A"),
+                            "sources": response.get("sources", "N/A"),
                         },
                     }
                 )
 
+                print(f"sources: {response.get("sources", "N/A")}")
+
                 with st.expander("View Evidence"):
                     st.markdown(f"**Reasoning:** {response.get('reasoning')}")
                     st.markdown(f"**Evidence:** {response.get('evidence')}")
+                    st.markdown(f"**Sources:** { response.get('sources')}")

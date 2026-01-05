@@ -131,20 +131,6 @@ Endpoint: POST /reset-session/{client_id}
 
 Action: Clears the vector store and uploaded files for that user.
 
-🐳 Docker Deployment
-
-To deploy this application as a container:
-
-1. Build the Image
-
-docker build -t policybot-auditor .
-
-
-2. Run the Container
-
-Note: This example assumes Ollama is running on the host machine. We use --network host for simplicity on Linux, or use host.docker.internal for Mac/Windows.
-
-docker run -d -p 8000:8000 --name policybot policybot-auditor
 
 
 📁 Project Structure

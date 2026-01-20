@@ -1,12 +1,12 @@
 
 backend_env/
 
-backend_venv
-uploads
-vector_store
-screenshots
+backend_venv/
+uploads/
+vector_store/
+screenshots/
 redeploy.sh
-
+start.txt
 roadmap.txt
 
 # Byte-compiled / optimized / DLL files

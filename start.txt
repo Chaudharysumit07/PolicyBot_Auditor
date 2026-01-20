@@ -1,0 +1,9 @@
+activate env : .\app_env\Scripts\activate
+
+start the server : fastapi dev main.py
+
+Download Ollama
+
+start ollama application for llm processing
+
+Ollama pull phi3:instruct --> if phi3 not installed

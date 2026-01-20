@@ -22,6 +22,7 @@ from misc import utils
 # Use a global variable to cache the embeddings model
 EMBEDDINGS_MODEL = None
 
+OLLAMA_BASE_URL= "http://host.docker.internal:11434"
 
 def get_embeddings_model():
     """

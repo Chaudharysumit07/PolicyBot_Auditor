@@ -1,6 +1,11 @@
 
 backend_env/
 
+backend_venv/
+backend/uploads/
+backend/vector_store/
+backend/screenshots/
+backend/redeploy.sh
 
 roadmap.txt
 

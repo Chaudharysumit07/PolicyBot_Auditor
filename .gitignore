@@ -1,11 +1,11 @@
 
 backend_env/
 
-backend_venv/
-backend/uploads/
-backend/vector_store/
-backend/screenshots/
-backend/redeploy.sh
+backend_venv
+uploads
+vector_store
+screenshots
+redeploy.sh
 
 roadmap.txt
 

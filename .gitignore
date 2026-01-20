@@ -4,7 +4,6 @@ backend_env/
 backend_venv/
 uploads/
 vector_store/
-screenshots/
 redeploy.sh
 start.txt
 roadmap.txt

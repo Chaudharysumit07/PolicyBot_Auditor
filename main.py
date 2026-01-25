@@ -21,6 +21,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import asyncio
 
+import chromadb
+import os
+
 app = FastAPI(title="PolicyBot Auditor API")
 
 
@@ -35,16 +38,16 @@ app.add_middleware(
 
 
 UPLOADS_DIR = Path("./uploads")
-VECTOR_STORE_DIR = Path("./vector_store")
+# VECTOR_STORE_DIR = Path("./vector_store")
 
 UPLOADS_DIR.mkdir(exist_ok=True)
-VECTOR_STORE_DIR.mkdir(exist_ok=True)
+# VECTOR_STORE_DIR.mkdir(exist_ok=True)
 
 
-# In memory database to hold the the RAG resource for each client session
-# app_state["client_id"]={"chain":rag_chain,"db_path":"..."}
-
-app_state: Dict[str, Dict[str, Any]] = {}
+chroma_client = chromadb.HttpClient(
+    host=os.getenv("CHROMA_HOST", "chroma-db"), 
+    port=8000
+)
 
 ALLOWED_MIME_TYPES = ["application/pdf"]
 
@@ -55,22 +58,19 @@ async def process_and_store_evidences(client_id: str, file_paths: List[Path]):
 
     await  asyncio.sleep(2)
 
-    db_path = ""
+    # db_path = ""
 
     try:
-        db_path = VECTOR_STORE_DIR / client_id
+        # db_path = VECTOR_STORE_DIR / client_id
 
         retriever = await rag_pipeline.create_vector_store(
             file_paths=file_paths,
-            db_path=db_path,
             client_id=client_id,
             websocket_manager=manager,
         )
 
-        await manager.send_status_update(client_id, "ready", "Creating RAG chain..")
-        rag_chain = rag_pipeline.get_rag_chain(retriever)
 
-        app_state[client_id] = {"chain": rag_chain, "db_path": db_path}
+        # app_state[client_id] = {"chain": rag_chain}
 
         await manager.send_status_update(
             client_id, "ready", "System is ready. You can now ask questions."
@@ -83,9 +83,9 @@ async def process_and_store_evidences(client_id: str, file_paths: List[Path]):
             client_id, "error", f"An error occured : {str(e)}"
         )
 
-        # clean up failed build
-        if db_path and db_path.exists():
-            shutil.rmtree(db_path)
+        # # clean up failed build
+        # if db_path and db_path.exists():
+        #     shutil.rmtree(db_path)
 
 
 # ------------websocket_endpoint--------------------
@@ -184,14 +184,16 @@ async def ask_question(request: schemas.QuestionRequest, client_id: str):
     Asks a question against the vector store created for the client_id.
     """
     # 1. Find the RAG chain for this client
-    session = app_state.get(client_id)
-    if not session or "chain" not in session:
-        raise HTTPException(
-            status_code=404,
-            detail="No document session found for this client. Please upload documents first.",
-        )
+    # session = app_state.get(client_id)
 
-    rag_chain = session["chain"]
+    retriever = rag_pipeline.get_chroma_retriever(client_id)  
+
+    if not retriever:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    
+    await manager.send_status_update(client_id, "ready", "Creating RAG chain..")
+    rag_chain = rag_pipeline.get_rag_chain(retriever)
 
     # 2. Get the response from the pipeline
     try:
@@ -208,43 +210,54 @@ async def ask_question(request: schemas.QuestionRequest, client_id: str):
 @app.delete("/cleanup_client/{client_id}")
 def reset_data(client_id: str):
 
-    session = app_state.pop(client_id, None)
-    # Delete the on-disk vector store
-    if session:
-        db_path = session.get("db_path")
+    """
+    Performs a full cleanup for a specific client:
+    1. Drops the isolated collection from the central ChromaDB server.
+    2. Deletes the uploaded PDFs from the persistent Docker volume.
+    """
 
-        if db_path and db_path.exists():
-            shutil.rmtree(db_path)
-
+    # --- 1. CHROMA DB CLEANUP ---
+    # We tell the central database server to delete the 'Locked Room' (Collection)
+    try:
+        # Check if collection exists before attempting delete to avoid unnecessary errors
+        collections = [c.name for c in chroma_client.list_collections()]
+        if client_id in collections:
+            chroma_client.delete_collection(name=client_id)
+            print(f"ChromaDB collection for {client_id} deleted.")
+    except Exception as e:
+        # We don't raise an error here yet, as the files might still need deleting
+        print(f"Warning: Could not delete Chroma collection: {str(e)}")
+    
+    # --- 2. VOLUME STORAGE CLEANUP ---
+    # This path is mapped to your laptop via Docker Volumes
     target_path = UPLOADS_DIR / client_id
 
-    # Delete any lingering uploads
     if not target_path.exists():
-
+        # If neither the DB nor the files exist, then there's nothing to do
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No data found for {client_id} client",
+            detail=f"No data or session found for client {client_id}",
         )
 
     try:
-        if target_path.is_file():
-
-            target_path.unlink(missing_ok=True)
-
-        elif target_path.is_dir():
-
+        # Standard recursive delete for the client's folder in the volume
+        if target_path.is_dir():
             shutil.rmtree(target_path)
+        elif target_path.is_file():
+            target_path.unlink()
 
-        return {"message": f"Data successfully deleted for the client {client_id}"}
+        return {
+            "status": "success",
+            "message": f"All data for client {client_id} has been wiped from Database and Volume."
+        }
 
     except PermissionError:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Permission Denied .Server cannot delete this file.",
+            detail="Permission Denied: Docker cannot modify the volume files. Check folder permissions on host.",
         )
-
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting file: {str(e)}",
+            detail=f"Error performing disk cleanup: {str(e)}",
         )

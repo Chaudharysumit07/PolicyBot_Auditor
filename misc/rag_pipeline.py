@@ -9,20 +9,36 @@ from operator import itemgetter
 from langchain_community.document_loaders import DirectoryLoader, UnstructuredFileLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
+# from langchain_community.vectorstores import FAISS
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough, Runnable, RunnableParallel
 from langchain_core.output_parsers import StrOutputParser
 
+
 # Internal import
 from misc import utils
+
+
+#for chroma db implementation
+import chromadb
+from langchain_chroma import Chroma
+
 
 # --- Configuration ---
 # Use a global variable to cache the embeddings model
 EMBEDDINGS_MODEL = None
 
 OLLAMA_BASE_URL= "http://host.docker.internal:11434"
+
+
+# Initialize Chroma Client (shared across all workers)
+# The host matches the service name in docker-compose.yml
+chroma_client = chromadb.HttpClient(
+    host=os.getenv("CHROMA_HOST", "chroma-db"),
+    port=8000
+)
+
 
 def get_embeddings_model():
     """
@@ -46,7 +62,6 @@ def get_embeddings_model():
 
 async def create_vector_store(
     file_paths: List[Path],
-    db_path: Path,
     client_id: str,
     websocket_manager: utils.ConnectionManager,
 ):
@@ -90,17 +105,14 @@ async def create_vector_store(
         client_id, "embedding", "Creating embeddings (this may take a while)..."
     )
     embeddings = get_embeddings_model()
-    vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
+    vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings, collection_name=client_id, client= chroma_client)
 
-    # 4. Save the vector store to disk
-    vectorstore.save_local(str(db_path))
+    
     await websocket_manager.send_status_update(
-        client_id, "embedding", "✅ Vector store created and saved."
-    )
+        client_id, "embedding", "✅ Documents indexed in central Vector DB.")
 
     # 5. Create and return the retriever
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    return retriever
+    return vectorstore.as_retriever(search_kwargs={"k": 3})
 
 
 '''
@@ -122,7 +134,25 @@ async def create_vector_store(
     **Your JSON Answer:**
     """
 '''
+def get_chroma_retriever(client_id: str):
+    """
+    Connects to the central ChromaDB server and retrieves the collection for a specific client.
+    This is called by every worker on-demand to remain 'Stateless'.
+    """
+    embeddings = get_embeddings_model()
+    
+    # Check if collection exists
+    try:
+        chroma_client.get_collection(name=client_id)
+    except Exception:
+        return None
 
+    vector_store = Chroma(
+        client=chroma_client,
+        collection_name=client_id,
+        embedding_function=embeddings
+    )
+    return vector_store.as_retriever(search_kwargs={"k": 3})
 
 def get_rag_chain(retriever) -> Runnable:
     """
@@ -152,7 +182,7 @@ def get_rag_chain(retriever) -> Runnable:
     prompt = PromptTemplate(template=template, input_variables=["context", "question"])
 
     # Using phi3:instruct as in your notebook. Ensure Ollama is running.
-    llm = ChatOllama(model="phi3:instruct", format="json")
+    llm = ChatOllama(model="phi3:instruct", format="json",base_url = OLLAMA_BASE_URL)
 
     # 1. Setup Retrieval: Get context and keep the question
     setup_and_retrieval = RunnableParallel(
@@ -170,29 +200,7 @@ def get_rag_chain(retriever) -> Runnable:
     return rag_chain
 
 
-# async def get_llm_response(question: str, rag_chain: Runnable) -> Dict[str, str]:
-#     """
-#      Queries the LLM and extracts Answer + Page Numbers (Metadata) + Clause (JSON).
-#     """
-#     try:
-#         response_str = await rag_chain.ainvoke(question)  # Use async invoke
 
-#         return json.loads(response_str)
-
-#     except json.JSONDecodeError as e:
-#         print(f"  - Error: LLM returned invalid JSON. Error: {e}")
-#         return {
-#             "answer": "Error",
-#             "reasoning": f"Failed to parse LLM response. Raw response: {response_str}",
-#             "evidence": "N/A",
-#         }
-#     except Exception as e:
-#         print(f"  - Error processing question '{question[:30]}...': {e}")
-#         return {
-#             "answer": "Error",
-#             "reasoning": f"Failed to get a valid response from the LLM. Error: {e}",
-#             "evidence": "N/A",
-#         }
 
 
 async def get_llm_response(question: str, rag_chain) -> Dict[str, Any]:

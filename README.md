@@ -35,7 +35,7 @@ Orchestration: Docker Compose manages the networking between the API, the Vector
 
 Security: Non-root container execution with explicit permission management for persistent volumes.
 
-![Architecture Diagram](./screenshots/architecture-diagram.PNG)
+![Architecture Diagram](./screenshots/architecture-diagram.png)
 
 
 🛠️ Tech Stack

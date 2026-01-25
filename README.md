@@ -24,6 +24,7 @@ PolicyBot Auditor is a production-ready GenAI tool designed to streamline auditi
 
 🏗️ Architecture
 
+
 The system has evolved from a local script into a distributed Microservice Architecture:
 
 API Layer: FastAPI running multiple stateless worker processes.
@@ -33,6 +34,9 @@ Database Layer: A central ChromaDB Server acting as the "Shared Brain" for all w
 Orchestration: Docker Compose manages the networking between the API, the Vector DB, and the Host machine.
 
 Security: Non-root container execution with explicit permission management for persistent volumes.
+
+![Architecture Diagram](./screenshots/architecture-diagram.PNG)
+
 
 🛠️ Tech Stack
 

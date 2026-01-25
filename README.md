@@ -1,152 +1,126 @@
-# 🛡️ PolicyBot Auditor
+🛡️ PolicyBot Auditor
 
-**Automated GRC & Cybersecurity Policy Auditing using Retrieval-Augmented Generation (RAG).**
-![default view](./screenshots/SS2.PNG)
+Automated GRC & Cybersecurity Policy Auditing using Retrieval-Augmented Generation (RAG).
 
-PolicyBot Auditor is a GenAI-powered tool designed to streamline the auditing process for cybersecurity and compliance frameworks (ISO 27001, SOC2, HIPAA). It allows auditors to upload raw policy documents (PDF, DOCX) and ask assessment questions. The system retrieves exact evidence from the documents and uses an LLM to generate reasoned compliance answers.
+![default view](./screenshots/ss2.PNG)
+PolicyBot Auditor is a production-ready GenAI tool designed to streamline auditing for frameworks like ISO 27001, SOC2, and HIPAA. By moving beyond simple Q&A, it acts as a Forensic Auditor, verifying compliance claims against uploaded evidence with high-fidelity citations.
+
+
 ![QnA image](./screenshots/SS1.PNG)
-**🚀 Key Features**
+🚀 Key Features
 
-* **📄 Multi-Document RAG**: Upload multiple policy documents (PDFs, Text, etc.) simultaneously to build a comprehensive knowledge base.
+📄 Forensic RAG Pipeline: Unlike generic bots, this system is tethered strictly to the provided context, requiring exact citations and section references for every claim.
 
--- **⚡ Real-Time Progress Tracking**: Uses WebSockets to provide live feedback on parsing, chunking, and embedding processes to the frontend.
+⚡ Real-Time Progress Tracking: Leverages WebSockets to provide live feedback on parsing, chunking, and vector indexing.
 ![Document processing steps](./screenshots/SS3.PNG)
 
-* **🔍 Evidence-Based Auditing: Every answer includes:**
+🧠 Stateless Microservice Architecture: Engineered with isolated worker processes (Uvicorn) that do not hold local state, allowing for seamless horizontal scaling.
 
-  - Direct Answer: (Yes/No/Partial)
+🛡️ Multi-Tenant Isolation: Uses ChromaDB Collections to create "Secure Sandboxes" per client_id, ensuring zero data leakage between different audit sessions.
 
-  - Reasoning: Why the policy meets/fails the criteria.
+🔍 Structured Compliance Mapping: Generates programmatically verifiable JSON findings (Yes/No/Partial) with reasoning and exact quotes.
 
-  - Evidence: Exact citations/quotes from the uploaded documents.
-
-* **🔒 Session Isolation** : Supports multiple users concurrently. Each user session gets a dedicated, isolated Vector Store.
-
-🧠 Local LLM Support: Optimized for privacy using local models via Ollama (e.g., Phi-3, Llama3).
+🔒 Privacy-First LLM: Optimized for air-gapped or private environments using Ollama (Phi-3, Llama3) on the host machine.
 
 🏗️ Architecture
 
-The application follows a modern asynchronous microservices pattern:
+The system has evolved from a local script into a distributed Microservice Architecture:
 
-Ingestion: User uploads documents via REST API.
+API Layer: FastAPI running multiple stateless worker processes.
 
-Processing (Async): Background tasks parse text, split into chunks (RecursiveCharacterSplitter), and generate embeddings.
+Database Layer: A central ChromaDB Server acting as the "Shared Brain" for all workers.
 
-Communication: WebSockets push status updates (parsing -> chunking -> ready) to the UI.
+Orchestration: Docker Compose manages the networking between the API, the Vector DB, and the Host machine.
 
-Storage: Vectors are stored in a session-specific FAISS index.
-
-Retrieval: When a question is asked, the system retrieves top-k relevant chunks.
-
-Generation: An LLM (via Ollama) synthesizes the answer using the retrieved context.
+Security: Non-root container execution with explicit permission management for persistent volumes.
 
 🛠️ Tech Stack
 
-Backend Framework: FastAPI (Python)
+Backend: FastAPI (Python 3.11)
 
-Orchestration: LangChain
+AI Orchestration: LangChain
 
-Vector Database: FAISS (CPU-optimized for this build)
+Vector Database: ChromaDB (Client-Server Mode)
 
 Embeddings: HuggingFace (all-MiniLM-L6-v2)
 
-LLM Inference: Ollama
+Inference: Ollama (External Host)
 
-Containerization: Docker
+Deployment: Docker & Docker Compose
 
-⚡ Quick Start
+⚡ Quick Start (Dockerized)
 
 Prerequisites
 
-Python 3.10+
+Ollama installed on your host machine.
 
-Ollama installed and running.
+Model pulled: ollama pull phi3:instruct.
 
-Model pulled: ollama pull phi3:instruct (or your preferred model).
+Docker & Docker Compose installed.
 
-1. Clone the Repository
+1. Configure Ollama for Docker
 
-git clone [https://github.com/yourusername/policybot-auditor.git](https://github.com/yourusername/policybot-auditor.git)
-cd policybot-auditor
+Ensure Ollama can receive traffic from the Docker bridge:
 
+Mac/Linux: launchctl setenv OLLAMA_HOST "0.0.0.0"
 
-2. Set Up Virtual Environment
+Windows: Set environment variable OLLAMA_HOST to 0.0.0.0.
 
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Mac/Linux
-source venv/bin/activate
+2. Launch the System
+
+docker-compose up --build -d
 
 
-3. Install Dependencies
+API: http://localhost:8000
 
-pip install -r requirements.txt
+ChromaDB: http://localhost:8001
 
-
-4. Run the Server
-
-uvicorn main:app --reload
-
-
-The API will be available at http://127.0.0.1:8000.
-access the Interactive Swagger Docs at http://127.0.0.1:8000/docs.
+Swagger Docs: http://localhost:8000/docs
 
 🔌 API Documentation
 
-1. WebSocket (Real-time Status)
+1. WebSocket (Progress)
 
 Endpoint: ws://localhost:8000/ws/progress/{client_id}
 
-Connect to this before uploading files to receive progress bars/status updates.
+Connect here first to monitor the ingestion heartbeat.
 
-Messages: {"status": "parsing", "detail": "..."}
-
-2. Upload Evidence
+2. Ingest Documents
 
 Endpoint: POST /upload-evidences/{client_id}
 
-Body: multipart/form-data (List of files)
+Payload: multipart/form-data
 
-Action: Starts the background ingestion process.
+Action: Triggers the pipeline to parse and index documents into the central ChromaDB.
 
-3. Ask Question
+3. Forensic Query
 
 Endpoint: POST /ask-question/{client_id}
 
-Body: {"question": "Does the organization have an encryption policy?"}
+Input: {"question": "Is encryption enforced for mobile devices?"}
 
-Response:
+Response: Structured JSON with answer, reasoning, and evidence (quote).
 
-{
-  "answer": "Yes",
-  "reasoning": "The policy explicitly states that AES-256 encryption is required for data at rest.",
-  "evidence": "Section 4.1: 'All sensitive data must use AES-256...'"
-}
+4. Cleanup & Wipe
 
+Endpoint: DELETE /cleanup_client/{client_id}
 
-4. Reset Session
-
-Endpoint: POST /reset-session/{client_id}
-
-Action: Clears the vector store and uploaded files for that user.
-
-
+Action: Drops the Chroma collection and wipes the persistent volume storage for that ID.
 
 📁 Project Structure
 
-├── main.py              # FastAPI entry point & Endpoint logic
-├── rag_pipeline.py      # Core RAG logic (Loading, Splitting, Embedding)
-├── schemas.py           # Pydantic models for Request/Response
-├── utils.py             # WebSocket connection manager
-├── requirements.txt     # Python dependencies
-├── Dockerfile           # Container definition
-├── uploads/             # Temp storage for uploaded files (gitignored)
-└── vector_store/        # Storage for FAISS indexes (gitignored)
+├── docker-compose.yml   # Multi-service orchestration
+├── backend/
+│   ├── main.py          # FastAPI entry point (Stateless Routes)
+│   ├── misc/
+│   │   ├── rag_pipeline.py # Core ChromaDB & LangChain logic
+│   │   ├── schemas.py      # Pydantic V2 data models
+│   │   └── utils.py        # WebSocket & Connection helpers
+│   ├── requirements.txt # Pinned production dependencies
+│   └── Dockerfile       # Multi-stage secure build
+└── chroma_data/         # Persistent Vector Storage (Volume)
 
 
 📜 License
 
-Distributed under the MIT License. See LICENSE for more information.
-
-Developed for Automated Policy Compliance Auditing.
+Distributed under the MIT License. Developed for automated Cybersecurity Policy Auditing.

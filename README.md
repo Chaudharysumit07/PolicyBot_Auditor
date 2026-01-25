@@ -1,4 +1,4 @@
-🛡️ PolicyBot Auditor
+# 🛡️ PolicyBot Auditor
 
 Automated GRC & Cybersecurity Policy Auditing using Retrieval-Augmented Generation (RAG).
 
@@ -7,22 +7,22 @@ PolicyBot Auditor is a production-ready GenAI tool designed to streamline auditi
 
 
 ![QnA image](./screenshots/SS1.PNG)
-🚀 Key Features
+# 🚀 Key Features
 
-📄 Forensic RAG Pipeline: Unlike generic bots, this system is tethered strictly to the provided context, requiring exact citations and section references for every claim.
+** 📄 Forensic RAG Pipeline: Unlike generic bots, this system is tethered strictly to the provided context, requiring exact citations and section references for every claim.
 
-⚡ Real-Time Progress Tracking: Leverages WebSockets to provide live feedback on parsing, chunking, and vector indexing.
+** ⚡ Real-Time Progress Tracking: Leverages WebSockets to provide live feedback on parsing, chunking, and vector indexing.
 ![Document processing steps](./screenshots/SS3.PNG)
 
-🧠 Stateless Microservice Architecture: Engineered with isolated worker processes (Uvicorn) that do not hold local state, allowing for seamless horizontal scaling.
+** 🧠 Stateless Microservice Architecture: Engineered with isolated worker processes (Uvicorn) that do not hold local state, allowing for seamless horizontal scaling.
 
-🛡️ Multi-Tenant Isolation: Uses ChromaDB Collections to create "Secure Sandboxes" per client_id, ensuring zero data leakage between different audit sessions.
+** 🛡️ Multi-Tenant Isolation: Uses ChromaDB Collections to create "Secure Sandboxes" per client_id, ensuring zero data leakage between different audit sessions.
 
-🔍 Structured Compliance Mapping: Generates programmatically verifiable JSON findings (Yes/No/Partial) with reasoning and exact quotes.
+** 🔍 Structured Compliance Mapping: Generates programmatically verifiable JSON findings (Yes/No/Partial) with reasoning and exact quotes.
 
-🔒 Privacy-First LLM: Optimized for air-gapped or private environments using Ollama (Phi-3, Llama3) on the host machine.
+** 🔒 Privacy-First LLM: Optimized for air-gapped or private environments using Ollama (Phi-3, Llama3) on the host machine.
 
-🏗️ Architecture
+# 🏗️ Architecture
 
 
 The system has evolved from a local script into a distributed Microservice Architecture:
@@ -38,7 +38,7 @@ Security: Non-root container execution with explicit permission management for p
 ![Architecture Diagram](./screenshots/architecture-diagram.png)
 
 
-🛠️ Tech Stack
+# 🛠️ Tech Stack
 
 Backend: FastAPI (Python 3.11)
 
@@ -54,7 +54,7 @@ Deployment: Docker & Docker Compose
 
 ⚡ Quick Start (Dockerized)
 
-Prerequisites
+# Prerequisites
 
 Ollama installed on your host machine.
 
@@ -81,7 +81,7 @@ ChromaDB: http://localhost:8001
 
 Swagger Docs: http://localhost:8000/docs
 
-🔌 API Documentation
+# 🔌 API Documentation
 
 1. WebSocket (Progress)
 
@@ -111,7 +111,7 @@ Endpoint: DELETE /cleanup_client/{client_id}
 
 Action: Drops the Chroma collection and wipes the persistent volume storage for that ID.
 
-📁 Project Structure
+# 📁 Project Structure
 
 ├── docker-compose.yml   # Multi-service orchestration
 ├── backend/
@@ -125,6 +125,6 @@ Action: Drops the Chroma collection and wipes the persistent volume storage for 
 └── chroma_data/         # Persistent Vector Storage (Volume)
 
 
-📜 License
+# 📜 License
 
 Distributed under the MIT License. Developed for automated Cybersecurity Policy Auditing.

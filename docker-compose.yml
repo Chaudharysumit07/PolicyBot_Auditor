@@ -1,0 +1,33 @@
+services:
+  # --- SERVICE 1: The FastAPI Backend ---
+  backend:
+    build: 
+      context: ./ # Tells Docker where the Dockerfile is
+    container_name: policy-api
+    ports:
+      - "8000:8000" # [HOST PORT]:[CONTAINER PORT]
+    environment:
+      # These variables are injected into your Python 'os.environ'
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - CHROMA_HOST=chroma-db # Uses the service name below as the hostname
+    extra_hosts:
+      # Allows the container to "see" your laptop (where Ollama lives)
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - chroma-db # Ensures chroma starts before the backend
+    volumes:
+      # Syncs your local 'uploads' folder with the container
+      - ./backend/uploads:/app/uploads
+
+  # --- SERVICE 2: The Chroma Vector Database ---
+  chroma-db:
+    image: chromadb/chroma:latest # Pulls pre-built image from Docker Hub
+    container_name: chroma-server
+    ports:
+      - "8001:8000" # FIXED: Changed host port to 8001 to avoid conflict with API
+    volumes:
+      # Persistence: Stores 
+      - ./chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
